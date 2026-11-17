@@ -24,8 +24,10 @@ st.write(
     "using the trained Random Forest regression model."
 )
 
-@st.cache_resource
-def load_model(path: Path):
+@st.cache_resource(max_entries=1)
+def load_model(path: Path, file_signature: tuple):
+    # file_signature (modification time, size) is part of the cache key,
+    # so a newly deployed model file is reloaded without an app reboot.
     return joblib.load(path)
 
 if not MODEL_PATH.exists():
@@ -43,7 +45,8 @@ if not MODEL_PATH.exists():
     st.stop()
 
 try:
-    model = load_model(MODEL_PATH)
+    model_stat = MODEL_PATH.stat()
+    model = load_model(MODEL_PATH, (model_stat.st_mtime_ns, model_stat.st_size))
 except Exception as exc:
     st.error(f"Could not load the model: {exc}")
     st.info(
